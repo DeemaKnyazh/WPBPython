@@ -1,5 +1,4 @@
 import qrcode
-import smtplib, ssl
 from qrcode.image.styledpil import StyledPilImage
 from email.message import EmailMessage
 from email.utils import make_msgid
