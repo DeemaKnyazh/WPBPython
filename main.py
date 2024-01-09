@@ -8,9 +8,41 @@ from qrcode.image.styles.colormasks import SolidFillColorMask
 from PIL import Image, ImageDraw
 import openpyxl
 import math
+import asyncio
+from pyppeteer import launch
+from xhtml2pdf import pisa             # import python module
 
 wb = openpyxl.load_workbook('GuestListTest.xlsx')
 sheet = wb.active
+
+#ToDo
+    #Save the excel sheet
+    #Add the guest to the database
+
+async def generate_pdf_from_html(html_content, pdf_path):
+    browser = await launch()
+    page = await browser.newPage()
+
+    await page.setContent(html_content)
+
+    await page.pdf({'path': pdf_path, 'format': 'A4'})
+
+    await browser.close()
+
+def convert_html_to_pdf(source_html, output_filename):
+    # open output file for writing (truncated binary)
+    result_file = open(output_filename, "w+b")
+
+    # convert HTML to PDF
+    pisa_status = pisa.CreatePDF(
+            source_html,                # the HTML to convert
+            dest=result_file)           # file handle to recieve result
+
+    # close output file
+    result_file.close()                 # close output file
+
+    # return False on success and True on errors
+    return pisa_status.err
 
 def style_eyes(img):
     img_size = img.size[0]
@@ -118,22 +150,22 @@ for i in range(sheet.max_row-2):
                   <tr>
                     <td align="center"><img src="cid:{image_cid[index+1]}" width="50%" align="center"></td>
                   </tr>''')
-        image_table = '\n'.join(trs)
+        name_table = '\n'.join(trs)
 
         # set an alternative html body
         msg.add_alternative(f"""\
         <html>
             <body>
-                <div align="center">    
+                <div align="center">
                          <img src="cid:{image_cid[0]}" style="width:50%">
-                         <p>Thank you for purchasing a ticket<br></p>
+                         <p>Thank you for purchasing a ticket!<br></p>
                          <table width="50%" border="0" cellspacing="0" cellpadding="0">
-                             {image_table}
+                             {name_table}
                          </table>
                         </div>
             </body>
         </html>
-        """.format(image_cid=image_cid,image_table=image_table), subtype='html')
+        """.format(image_cid=image_cid,name_table=name_table), subtype='html')
         # image_cid looks like <long.random.number@xyz.com>
         # to use it as the img src, we don't need `<` or `>`
         # so we use [1:-1] to strip them off
@@ -160,13 +192,46 @@ for i in range(sheet.max_row-2):
                                              subtype=subtype,
                                              cid=f"<{image_cid[index+1]}>")
 
+        #Creating a pdf
+        trs = []
+        for index, name in enumerate(namesUse):
+            trs.append(f'''\
+                          <tr>
+                            <td align="center" size="bigger">{name}</td>
+                          </tr>
+                          <tr>
+                            <td align="center"><img src="{names[index]}.png" style="zoom:60%" align="middle"></td>
+                          </tr>
+                          <tr>
+                          <td><br></td>
+                          </tr>''')
+        name_pdf_table = '\n'.join(trs)
+
+        html = f"""\
+        <html>
+            <body style="font-size:20px">
+                <div align="center">
+                         <img src="WPB-removebg.png">
+                         <p>Thank you for purchasing a ticket!<br></p>
+                         <table border="0" cellspacing="0" cellpadding="0">
+                             {name_pdf_table}
+                         </table>
+                </div>
+            </body>
+        </html>
+        """.format(image_cid=image_cid,name_pdf_table=name_pdf_table)
+        print(html)
+
+        #asyncio.get_event_loop().run_until_complete(generate_pdf_from_html(html, names[0] + '.pdf'))
+        convert_html_to_pdf(html, names[0] + '.pdf')
+
         # Send the email (this example assumes SMTP authentication is required)
 
         with smtplib.SMTP('smtp.gmail.com', 587) as smtp:
             smtp.ehlo()  # send the extended hello to our server
             smtp.starttls()  # tell server we want to communicate with TLS encryption
             smtp.login("deema@ruskoka.com", "sqgs hmyf jdzw tzks")
-            smtp.sendmail("deema@ruskoka.com", emails.value, msg.as_string())
+            #smtp.sendmail("deema@ruskoka.com", emails.value, msg.as_string())
 
         print("Message sent!")
 
