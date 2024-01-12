@@ -8,16 +8,23 @@ from qrcode.image.styles.colormasks import SolidFillColorMask
 from PIL import Image, ImageDraw
 import openpyxl
 import math
-import asyncio
+import requests
 from pyppeteer import launch
 from xhtml2pdf import pisa             # import python module
+from dotenv import load_dotenv
+import os
 
+load_dotenv()
 wb = openpyxl.load_workbook('GuestListTest.xlsx')
 sheet = wb.active
+api_url = "https://ruskokaaccess.azurewebsites.net/api/guests"
+headers = {"Authorization":os.environ.get("api-key")}
 
 #ToDo
     #Save the excel sheet
     #Add the guest to the database
+    #Improve Email and PDF
+    #Remove generic Table number
 
 async def generate_pdf_from_html(html_content, pdf_path):
     browser = await launch()
@@ -56,7 +63,7 @@ def style_eyes(img):
     return mask
 
 for i in range(sheet.max_row-2):
-    emailGroup = [[0,0,0,0]]
+    emailGroup = [[0,0,0,0,0]]
     guests = 1
     names = [0]
     namesUse = [0]
@@ -81,7 +88,7 @@ for i in range(sheet.max_row-2):
             emailsCheck = sheet.cell(row=4+i+l, column=4)
             statusCheck = sheet.cell(row=4+i+l, column=5)
             if emailsCheck.value == emailGroup[0][2] and statusCheck.value == False:
-                emailGroup.append([0,0,0,0])
+                emailGroup.append([0,0,0,0,0])
                 sheet.cell(row=4 + i + l, column=5).value = True
                 names.append(firstCheck.value + lastCheck.value)
                 namesUse.append(firstCheck.value + " " + lastCheck.value)
@@ -102,6 +109,7 @@ for i in range(sheet.max_row-2):
             d = emailGroup[index][0][-1]
             e = emailGroup[index][1][-1]
             code = ("WPB" + a+b+c+d+e + "23")
+            emailGroup[index][4] = code
 
             #Generate a qr code based off the ticket code
             qr = qrcode.QRCode(version=5, error_correction=qrcode.constants.ERROR_CORRECT_H, border=1)
@@ -230,9 +238,14 @@ for i in range(sheet.max_row-2):
         with smtplib.SMTP('smtp.gmail.com', 587) as smtp:
             smtp.ehlo()  # send the extended hello to our server
             smtp.starttls()  # tell server we want to communicate with TLS encryption
-            smtp.login("deema@ruskoka.com", "sqgs hmyf jdzw tzks")
+            smtp.login("deema@ruskoka.com", os.environ.get("apppass"))
             #smtp.sendmail("deema@ruskoka.com", emails.value, msg.as_string())
 
         print("Message sent!")
+
+        for index, name in enumerate(names):
+            guest = {"name": emailGroup[index][0] + " " + emailGroup[index][1],"tables": 1 ,"ticket": emailGroup[index][4]}
+            response = requests.post(api_url, json=guest, headers=headers)
+            print(response)
 
         #smtp.quit()  # finally, don't forget to close the connection
