@@ -180,8 +180,7 @@ for i in range(sheet.max_row-2):
                          </table>
                          <img src="cid:{image_cid[1]}" style="width:75%">
                          <p><br></p>
-                         <p style="font-family: "Helvetica", sans-serif;">If there are any issues seeing the images that means there was an error in loading the email<br></p>
-                         <p style="font-family: "Helvetica", sans-serif;">Please check that the PDFs containing the tickets are attached, if not please reply all to this email<br></p>
+                         <p style="font-family: "Helvetica", sans-serif;">Please check that the PDF containing the tickets is attached, if not please reply all to this email<br></p>
                          <p style="font-family: "Helvetica", sans-serif;">The content of this email is confidential and intended for the recipient specified in message only. If you received this message by mistake, please reply to this message and follow with its deletion, so that we can ensure such a mistake does not occur in the future.<br></p>
                         </div>
             </body>
